@@ -1,132 +1,133 @@
-# Audio Volume Manager
+# AudioSentry
 
-A lightweight macOS app that automatically manages system volume based on audio device connections. When your AirPods or Logitech Zone Vibe headset disconnects, the volume is muted. When they reconnect, volume is set to 50%.
+A lightweight macOS app that automatically manages system volume based on audio device connections. The app monitors your selected audio devices and automatically adjusts volume when they connect or disconnect - perfect for seamless transitions between headphones, speakers, and other audio devices.
 
 ## Features
 
-- 🎧 Monitors AirPods and Logitech Zone Vibe connections
-- 🔇 Automatically mutes when headphones disconnect
-- 🔊 Sets volume to 50% when headphones reconnect
-- 📊 Runs efficiently in the background
-- 🖥️ Menu bar icon for easy access
-- 🔔 System notifications for volume changes
-- ⚙️ Preferences window to manage monitored devices
-- ➕ Add/remove devices through GUI
-- 💾 Saves preferences between launches
-- 📱 Shows all connected audio devices
+### Core Functionality
+- 🎧 **Smart Device Monitoring**: Track any audio devices you choose (AirPods, Zone Vibe, etc.)
+- 🔇 **Auto-Mute**: Automatically muts volume when tracked devices disconnect
+- 🔊 **Custom Volume Control**: Set individual volume levels for each tracked device (not just 50%)
+- 📊 **Background Operation**: Runs efficiently in the background as a menu bar app
+- 🖥️ **Menu Bar Integration**: Clean headphones icon in your menu bar for easy access
 
-## Installation
+### User Interface
+- ⚙️ **Preferences Window**: Easy-to-use GUI to manage monitored devices
+- 📱 **Device Discovery**: Shows all connected audio devices for easy selection
+- ➕ **Add/Remove Devices**: Double-click to move devices between available and tracked lists
+- 🎚️ **Volume Controls**: Individual volume sliders for each tracked device
+- 📊 **Live Status**: Real-time connection status indicators for each device
 
-### Option 1: Build with Xcode (Recommended)
+### Smart Features
+- 💾 **Persistent Settings**: Saves your device list and volume preferences between launches
+- 📋 **Activity Log**: Shows recent device connect/disconnect events with timestamps
+- 🔄 **Single Instance**: Automatically prevents multiple instances from running
+- 🎯 **Smart Matching**: Flexible device name matching (partial names work)
+- ⚡ **Quick Updates**: Real-time status updates every few seconds
 
-1. Clone this repository:
-```bash
-git clone https://github.com/DFraserStratos/audio-volume-manager.git
-cd audio-volume-manager
-```
+### Visual Feedback
+- 🟢 **Green Icon**: When tracked devices are connected
+- 🔴 **Red Icon**: When all tracked devices are disconnected
+- ⚪ **White Icon**: Default state
+- 🔔 **Status Updates**: Clear visual indicators in preferences window
 
-2. Set up Xcode project:
-```bash
-chmod +x setup-xcode.sh
-./setup-xcode.sh
-```
+## Installation & Usage
 
-Or see [XCODE_SETUP.md](XCODE_SETUP.md) for manual setup instructions.
+### Quick Start
 
-### Option 2: Build from command line
+1. **Download or Build**:
+   ```bash
+   git clone https://github.com/DFraserStratos/audio-volume-manager.git
+   cd audio-volume-manager
+   make app
+   ```
 
-1. Clone this repository:
-```bash
-git clone https://github.com/DFraserStratos/audio-volume-manager.git
-cd audio-volume-manager
-```
+2. **Run the App**:
+   - Double-click `AudioSentry.app` in Finder, or
+   - Install to Applications: `make install` (requires sudo)
 
-2. Build the app:
-```bash
-make build
-```
+3. **Setup Your Devices**:
+   - Click the headphones icon in your menu bar
+   - Select "Preferences"
+   - Double-click devices from the left list to add them to tracking
+   - Adjust volume levels for each device using the +/- buttons
+   - Close preferences - the app will remember your settings
 
-3. Run the app:
-```bash
-./VolumeManagerApp
-```
+### How It Works
 
-### Option 3: Download release
+The app continuously monitors your audio devices. When a tracked device:
+- **Connects**: Volume is set to that device's custom level
+- **Disconnects**: Volume is muted (if no other tracked devices are connected)
 
-Download the latest release from the [Releases](https://github.com/DFraserStratos/audio-volume-manager/releases) page.
-
-## Usage
-
-1. Launch the app - you'll see a headphones icon in your menu bar
-2. Click the menu bar icon and select "Preferences" to manage devices
-3. Add or remove device names to monitor
-4. The app will show:
-   - Current status (running/muted)
-   - Connected monitored devices
-   - All available audio devices
-5. Volume will automatically adjust when devices connect/disconnect
-
-To quit the app, click the menu bar icon and select "Quit".
-
-## Auto-start at login
-
-1. Open System Settings → Users & Groups → Login Items
-2. Click the + button
-3. Navigate to and select the VolumeManagerApp
-4. Click Add
+You can track multiple devices simultaneously, and each can have its own volume level.
 
 ## Building
 
-### Using Command Line
-
-Requirements:
+### Requirements
 - macOS 10.15 or later
-- Xcode Command Line Tools
+- Xcode Command Line Tools (`xcode-select --install`)
 
-Build commands:
+### Build Commands
 ```bash
 make build          # Build the executable
 make run           # Build and run the app
-make app           # Create .app bundle
+make app           # Create .app bundle (double-clickable)
 make install       # Install to /Applications (requires sudo)
 make clean         # Clean build artifacts
+make uninstall     # Remove from /Applications (requires sudo)
 ```
 
-### Using Xcode
+### Creating a Clickable App
 
-See [XCODE_SETUP.md](XCODE_SETUP.md) for detailed instructions on setting up and running the project in Xcode.
+The `make app` command creates `AudioSentry.app` - a proper macOS application bundle that you can:
+- Double-click to launch
+- Copy to `/Applications` 
+- Add to your Dock
+- Set to launch at login
+
+## Auto-Start at Login
+
+1. Run `make install` to copy the app to `/Applications`
+2. Open **System Settings** → **Users & Groups** → **Login Items**
+3. Click the **+** button
+4. Navigate to `/Applications` and select **AudioSentry.app**
+5. Click **Add**
 
 ## Customization
 
-To add more devices to monitor, use the Preferences window in the app, or edit the `targetDevices` array in `VolumeManager/AppDelegate.swift`:
+### Through the GUI
+- Use the Preferences window to add/remove devices
+- Adjust volume levels with the +/- buttons (5% increments)
+- View recent activity in the activity log
 
-```swift
-var targetDevices = ["AirPods", "Zone Vibe", "Your Device Name"]
-```
-
-To change volume levels, modify these lines:
-```swift
-setSystemVolume(0.5) // 50% when connected
-setSystemVolume(0.0) // 0% when disconnected
-```
+### Manual Configuration
+Edit `VolumeManager/AppDelegate.swift` to change:
+- Default volume increments
+- Activity log size
+- Update intervals
 
 ## Architecture
 
-The app uses a clean AppKit architecture:
+Clean, modern AppKit architecture:
+- **main.swift**: App entry point with singleton enforcement
+- **AppDelegate.swift**: Core logic, audio monitoring, volume control
+- **PreferencesViewController.swift**: Full-featured preferences UI
+- **PreferencesWindowController.swift**: Window management
 
-- **AppDelegate**: Core app logic, audio monitoring, volume control
-- **PreferencesWindowController**: Window management
-- **PreferencesViewController**: Preferences UI and device management
+## Recent Improvements
 
-## Recent Changes
+This project has been refined to be:
+- ✅ **Build-tool agnostic**: No Xcode required - just `make app`
+- ✅ **User-friendly**: Complete GUI for all configuration
+- ✅ **Reliable**: Robust device detection and singleton management
+- ✅ **Modern**: Clean AppKit implementation with proper separation of concerns
+- ✅ **Customizable**: Per-device volume settings and flexible device matching
 
-The codebase has been recently refactored to:
-- Remove duplicate code and mixed architectures
-- Use modern notification APIs
-- Improve separation of concerns
-- Fix macOS compatibility issues
+## Troubleshooting
 
-See [REFACTOR_SUMMARY.md](REFACTOR_SUMMARY.md) for detailed changes.
+- **Permission Issues**: The app may request accessibility permissions on first run
+- **Device Not Detected**: Try the exact device name from System Settings → Sound
+- **Multiple Instances**: The app automatically prevents this, but you can manually quit existing instances
 
 ## License
 
@@ -134,12 +135,7 @@ MIT License - feel free to modify and distribute as needed.
 
 ## Contributing
 
-Pull requests are welcome! Please feel free to submit a PR if you'd like to add features or fix bugs.
-
-## Known Issues
-
-- Requires macOS 10.15 or later
-- May need accessibility permissions on first run
+Pull requests welcome! The codebase is clean and well-structured for easy contributions.
 
 ## Author
 
