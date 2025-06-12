@@ -410,13 +410,12 @@ extension PreferencesViewController: NSTableViewDelegate {
                     
                     // Volume label
                     let volumeLabel = NSTextField()
-                    volumeLabel.isBordered = true
-                    volumeLabel.backgroundColor = .controlBackgroundColor
+                    volumeLabel.isBordered = false
+                    volumeLabel.backgroundColor = .clear
                     volumeLabel.isEditable = false
-                    volumeLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+                    volumeLabel.font = NSFont.systemFont(ofSize: 13)
                     volumeLabel.translatesAutoresizingMaskIntoConstraints = false
                     volumeLabel.alignment = .center
-                    volumeLabel.bezelStyle = .roundedBezel
                     
                     // Plus button
                     let plusButton = NSButton()
@@ -433,23 +432,22 @@ extension PreferencesViewController: NSTableViewDelegate {
                     
                     NSLayoutConstraint.activate([
                         // Minus button
-                        minusButton.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 5),
+                        minusButton.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 6),
                         minusButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
                         minusButton.widthAnchor.constraint(equalToConstant: 24),
                         minusButton.heightAnchor.constraint(equalToConstant: 20),
                         
                         // Volume label
-                        volumeLabel.leadingAnchor.constraint(equalTo: minusButton.trailingAnchor, constant: 5),
+                        volumeLabel.leadingAnchor.constraint(equalTo: minusButton.trailingAnchor, constant: 6),
                         volumeLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                        volumeLabel.widthAnchor.constraint(equalToConstant: 50),
-                        volumeLabel.heightAnchor.constraint(equalToConstant: 20),
+                        volumeLabel.widthAnchor.constraint(equalToConstant: 45),
                         
                         // Plus button
-                        plusButton.leadingAnchor.constraint(equalTo: volumeLabel.trailingAnchor, constant: 5),
+                        plusButton.leadingAnchor.constraint(equalTo: volumeLabel.trailingAnchor, constant: 6),
                         plusButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
                         plusButton.widthAnchor.constraint(equalToConstant: 24),
                         plusButton.heightAnchor.constraint(equalToConstant: 20),
-                        plusButton.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor, constant: -5)
+                        plusButton.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor, constant: -8)
                     ])
                 }
                 
