@@ -152,8 +152,17 @@ class PreferencesViewController: NSViewController {
     func refreshAvailableDevices() {
         guard let appDelegate = appDelegate else { return }
         
-        // Get all connected devices
-        availableDevices = appDelegate.getConnectedAudioDevices()
+        // Get all connected devices, but exclude devices that are already being tracked
+        let allConnectedDevices = appDelegate.getConnectedAudioDevices()
+        
+        // Filter out devices that are already in the tracked list
+        availableDevices = allConnectedDevices.filter { connectedDevice in
+            !appDelegate.targetDevices.contains { trackedDevice in
+                // Check if this connected device matches any tracked device
+                connectedDevice.localizedCaseInsensitiveContains(trackedDevice) ||
+                trackedDevice.localizedCaseInsensitiveContains(connectedDevice)
+            }
+        }
         
         DispatchQueue.main.async {
             self.availableDevicesTableView?.reloadData()
