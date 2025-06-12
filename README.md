@@ -10,10 +10,30 @@ A lightweight macOS app that automatically manages system volume based on audio 
 - 📊 Runs efficiently in the background
 - 🖥️ Menu bar icon for easy access
 - 🔔 System notifications for volume changes
+- ⚙️ Preferences window to manage monitored devices
+- ➕ Add/remove devices through GUI
+- 💾 Saves preferences between launches
+- 📱 Shows all connected audio devices
 
 ## Installation
 
-### Option 1: Build from source
+### Option 1: Build with Xcode (Recommended)
+
+1. Clone this repository:
+```bash
+git clone https://github.com/DFraserStratos/audio-volume-manager.git
+cd audio-volume-manager
+```
+
+2. Set up Xcode project:
+```bash
+chmod +x setup-xcode.sh
+./setup-xcode.sh
+```
+
+Or see [XCODE_SETUP.md](XCODE_SETUP.md) for manual setup instructions.
+
+### Option 2: Build from command line
 
 1. Clone this repository:
 ```bash
@@ -31,15 +51,20 @@ make build
 ./VolumeManager
 ```
 
-### Option 2: Download release
+### Option 3: Download release
 
 Download the latest release from the [Releases](https://github.com/DFraserStratos/audio-volume-manager/releases) page.
 
 ## Usage
 
 1. Launch the app - you'll see a headphones icon in your menu bar
-2. Connect/disconnect your AirPods or Logitech Zone Vibe
-3. Volume will automatically adjust
+2. Click the menu bar icon and select "Preferences" to manage devices
+3. Add or remove device names to monitor
+4. The app will show:
+   - Current status (running/muted)
+   - Connected monitored devices
+   - All available audio devices
+5. Volume will automatically adjust when devices connect/disconnect
 
 To quit the app, click the menu bar icon and select "Quit".
 
@@ -52,13 +77,19 @@ To quit the app, click the menu bar icon and select "Quit".
 
 ## Building
 
+### Using Xcode
+
+See [XCODE_SETUP.md](XCODE_SETUP.md) for detailed instructions on setting up and running the project in Xcode.
+
+### Using Command Line
+
 Requirements:
 - macOS 10.15 or later
 - Xcode Command Line Tools
 
 Build command:
 ```bash
-swiftc -o VolumeManager VolumeManager.swift -framework Cocoa -framework CoreAudio -framework AVFoundation
+swiftc -o VolumeManager VolumeManager/AppDelegate.swift -framework Cocoa -framework CoreAudio -framework AVFoundation
 ```
 
 Or use the included Makefile:
@@ -68,7 +99,7 @@ make build
 
 ## Customization
 
-To add more devices to monitor, edit the `targetDevices` array in `VolumeManager.swift`:
+To add more devices to monitor, edit the `targetDevices` array in `VolumeManager/AppDelegate.swift`:
 
 ```swift
 var targetDevices = ["AirPods", "Zone Vibe", "Your Device Name"]
