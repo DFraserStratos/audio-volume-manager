@@ -6,8 +6,8 @@ A lightweight macOS app that automatically manages system volume based on audio 
 
 ### Core Functionality
 - 🎧 **Smart Device Monitoring**: Track any audio devices you choose (AirPods, Zone Vibe, etc.)
-- 🔇 **Auto-Mute**: Automatically muts volume when tracked devices disconnect
-- 🔊 **Custom Volume Control**: Set individual volume levels for each tracked device (not just 50%)
+- 🔇 **Auto-Mute**: Automatically muts volume when all tracked devices disconnect
+- 🔊 **Custom Volume Control**: Set individual volume levels for each tracked device
 - 📊 **Background Operation**: Runs efficiently in the background as a menu bar app
 - 🖥️ **Menu Bar Integration**: Clean headphones icon in your menu bar for easy access
 
