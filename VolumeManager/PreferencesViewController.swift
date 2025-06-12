@@ -4,7 +4,6 @@ class PreferencesViewController: NSViewController {
     weak var appDelegate: AppDelegate?
     
     // UI outlets for programmatically created interface
-    var statusLabel: NSTextField!
     var availableDevicesTableView: NSTableView!
     var trackedDevicesTableView: NSTableView!
     var activityLogTableView: NSTableView!
@@ -25,14 +24,12 @@ class PreferencesViewController: NSViewController {
         // Initial data load
         refreshAvailableDevices()  
         updateTrackedDeviceStates()
-        updateStatus()
         refreshActivityLog()
         
         // Set up timer to update status every 1 second for live updates
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             self.refreshAvailableDevices()
             self.updateTrackedDeviceStates()
-            self.updateStatus()
             self.refreshActivityLog()
         }
     }
@@ -41,7 +38,6 @@ class PreferencesViewController: NSViewController {
         super.viewWillAppear()
         refreshAvailableDevices()
         updateTrackedDeviceStates()
-        updateStatus()
     }
     
     func setupUI() {
@@ -84,13 +80,22 @@ class PreferencesViewController: NSViewController {
         trackedLabel.frame = NSRect(x: 430, y: 550, width: 250, height: 20)
         containerView.addSubview(trackedLabel)
         
-        // Tracked devices table (WITH status icons)
+        // Tracked devices table (WITH status icons and volume controls)
         let trackedScrollView = NSScrollView(frame: NSRect(x: 430, y: 390, width: 350, height: 150))
         trackedDevicesTableView = NSTableView()
+        
+        // Device Name column
         let trackedColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("TrackedDevice"))
         trackedColumn.title = "Device Name"
-        trackedColumn.width = 330
+        trackedColumn.width = 200
         trackedDevicesTableView.addTableColumn(trackedColumn)
+        
+        // Volume column
+        let volumeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("VolumeControl"))
+        volumeColumn.title = "Volume"
+        volumeColumn.width = 140
+        trackedDevicesTableView.addTableColumn(volumeColumn)
+        
         trackedDevicesTableView.delegate = self
         trackedDevicesTableView.dataSource = self
         trackedDevicesTableView.doubleAction = #selector(removeSelectedDevice)
@@ -108,14 +113,7 @@ class PreferencesViewController: NSViewController {
         trackedHelpLabel.alignment = .center
         containerView.addSubview(trackedHelpLabel)
         
-        // Status section
-        statusLabel = NSTextField(labelWithString: "Status: Loading...")
-        statusLabel.font = NSFont.systemFont(ofSize: 12)
-        statusLabel.frame = NSRect(x: 20, y: 350, width: 760, height: 20)
-        statusLabel.isEditable = false
-        statusLabel.isBordered = false
-        statusLabel.backgroundColor = .clear
-        containerView.addSubview(statusLabel)
+
         
         // Activity log section
         let activityLabel = NSTextField(labelWithString: "Recent Activity:")
@@ -138,7 +136,7 @@ class PreferencesViewController: NSViewController {
         containerView.addSubview(activityScrollView)
         
         // Instructions
-        let instructionsLabel = NSTextField(labelWithString: "How it works: When tracked devices disconnect, volume is muted. When they reconnect, volume is set to 50%.\nTip: Double-click devices to move them between lists.")
+        let instructionsLabel = NSTextField(labelWithString: "How it works: When tracked devices disconnect, volume is muted. When they reconnect, volume is set to each device's custom level.\nTip: Double-click devices to move them between lists. Use +/− buttons to adjust volume in 5% increments for each device.")
         instructionsLabel.font = NSFont.systemFont(ofSize: 11)
         instructionsLabel.frame = NSRect(x: 20, y: 10, width: 760, height: 35)
         instructionsLabel.isEditable = false
@@ -197,12 +195,17 @@ class PreferencesViewController: NSViewController {
             // Don't add if already tracked
             if !appDelegate.targetDevices.contains(selectedDevice) {
                 appDelegate.targetDevices.append(selectedDevice)
+                
+                // Set default volume of 50% for new device if not already set
+                if appDelegate.deviceVolumeSettings[selectedDevice] == nil {
+                    appDelegate.deviceVolumeSettings[selectedDevice] = 0.5
+                }
+                
                 appDelegate.savePreferences()
                 
                 // Refresh both lists
                 refreshAvailableDevices()
                 updateTrackedDeviceStates()
-                updateStatus()
             }
         }
     }
@@ -216,39 +219,67 @@ class PreferencesViewController: NSViewController {
             let deviceToRemove = appDelegate.targetDevices[selectedRow]
             appDelegate.targetDevices.remove(at: selectedRow)
             trackedDeviceStates.removeValue(forKey: deviceToRemove)
+            // Also remove volume setting for this device
+            appDelegate.deviceVolumeSettings.removeValue(forKey: deviceToRemove)
             appDelegate.savePreferences()
             
             // Refresh both lists
             refreshAvailableDevices()
             updateTrackedDeviceStates()
-            updateStatus()
         }
     }
     
-    func updateStatus() {
+    @objc func volumeDecreaseClicked(_ sender: NSButton) {
         guard let appDelegate = appDelegate else { return }
         
-        let connectedDevices = appDelegate.getConnectedAudioDevices()
-        let trackedCount = appDelegate.targetDevices.count
-        let connectedTrackedCount = appDelegate.targetDevices.filter { trackedDevice in
-            connectedDevices.contains { deviceName in
-                deviceName.localizedCaseInsensitiveContains(trackedDevice)
-            }
-        }.count
-        
-        DispatchQueue.main.async {
-            if trackedCount == 0 {
-                self.statusLabel.stringValue = "Status: No devices tracked"
-                self.statusLabel.textColor = .secondaryLabelColor
-            } else if connectedTrackedCount == 0 {
-                self.statusLabel.stringValue = "Status: \(trackedCount) tracked, 0 connected (Volume Muted)"
-                self.statusLabel.textColor = .systemOrange
-            } else {
-                self.statusLabel.stringValue = "Status: \(trackedCount) tracked, \(connectedTrackedCount) connected (Volume at 50%)"
-                self.statusLabel.textColor = .systemGreen
+        let row = sender.tag
+        if row >= 0 && row < appDelegate.targetDevices.count {
+            let deviceName = appDelegate.targetDevices[row]
+            let currentVolume = appDelegate.getVolumeForDevice(deviceName)
+            let currentPercentage = Int(currentVolume * 100)
+            
+            // Decrease by 5%, minimum 0%, rounded to nearest 5%
+            let newPercentage = max(0, ((currentPercentage - 5) / 5) * 5)
+            let newVolume = Float(newPercentage) / 100.0
+            
+            // Update only the stored setting (don't apply immediately)
+            appDelegate.deviceVolumeSettings[deviceName] = newVolume
+            appDelegate.savePreferences()
+            
+            // Update the percentage label
+            if let cell = sender.superview as? NSTableCellView,
+               let label = cell.subviews.first(where: { $0 is NSTextField }) as? NSTextField {
+                label.stringValue = "\(newPercentage)%"
             }
         }
     }
+    
+    @objc func volumeIncreaseClicked(_ sender: NSButton) {
+        guard let appDelegate = appDelegate else { return }
+        
+        let row = sender.tag
+        if row >= 0 && row < appDelegate.targetDevices.count {
+            let deviceName = appDelegate.targetDevices[row]
+            let currentVolume = appDelegate.getVolumeForDevice(deviceName)
+            let currentPercentage = Int(currentVolume * 100)
+            
+            // Increase by 5%, maximum 100%, rounded to nearest 5%
+            let newPercentage = min(100, ((currentPercentage + 5) / 5) * 5)
+            let newVolume = Float(newPercentage) / 100.0
+            
+            // Update only the stored setting (don't apply immediately)
+            appDelegate.deviceVolumeSettings[deviceName] = newVolume
+            appDelegate.savePreferences()
+            
+            // Update the percentage label
+            if let cell = sender.superview as? NSTableCellView,
+               let label = cell.subviews.first(where: { $0 is NSTextField }) as? NSTextField {
+                label.stringValue = "\(newPercentage)%"
+            }
+        }
+    }
+    
+
     
 
     
@@ -313,46 +344,135 @@ extension PreferencesViewController: NSTableViewDelegate {
             return cell
             
         } else if tableView == trackedDevicesTableView {
-            // Tracked devices table - WITH live status icons
-            let cellIdentifier = NSUserInterfaceItemIdentifier("TrackedDeviceCell")
-            
-            let cell: NSTableCellView
-            if let recycledCell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView {
-                cell = recycledCell
-            } else {
-                cell = NSTableCellView()
-                cell.identifier = cellIdentifier
+            // Tracked devices table - WITH live status icons and volume controls
+            if tableColumn?.identifier == NSUserInterfaceItemIdentifier("TrackedDevice") {
+                // Device name column
+                let cellIdentifier = NSUserInterfaceItemIdentifier("TrackedDeviceCell")
                 
-                let textField = NSTextField()
-                textField.isBordered = false
-                textField.backgroundColor = .clear
-                textField.isEditable = false
-                textField.font = NSFont.systemFont(ofSize: 13)
-                textField.translatesAutoresizingMaskIntoConstraints = false
+                let cell: NSTableCellView
+                if let recycledCell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView {
+                    cell = recycledCell
+                } else {
+                    cell = NSTableCellView()
+                    cell.identifier = cellIdentifier
+                    
+                    let textField = NSTextField()
+                    textField.isBordered = false
+                    textField.backgroundColor = .clear
+                    textField.isEditable = false
+                    textField.font = NSFont.systemFont(ofSize: 13)
+                    textField.translatesAutoresizingMaskIntoConstraints = false
+                    
+                    cell.addSubview(textField)
+                    cell.textField = textField
+                    
+                    NSLayoutConstraint.activate([
+                        textField.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 5),
+                        textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -5),
+                        textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+                    ])
+                }
                 
-                cell.addSubview(textField)
-                cell.textField = textField
+                if let devices = appDelegate?.targetDevices, row < devices.count {
+                    let deviceName = devices[row]
+                    let isConnected = trackedDeviceStates[deviceName] ?? false
+                    
+                    // Show live status with green/red icons
+                    let statusIcon = isConnected ? "🟢" : "🔴"
+                    let statusText = isConnected ? "Connected" : "Disconnected"
+                    
+                    cell.textField?.stringValue = "\(statusIcon) \(deviceName) - \(statusText)"
+                    cell.textField?.textColor = isConnected ? .systemGreen : .systemOrange
+                }
                 
-                NSLayoutConstraint.activate([
-                    textField.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 5),
-                    textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -5),
-                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-                ])
+                return cell
+                
+            } else if tableColumn?.identifier == NSUserInterfaceItemIdentifier("VolumeControl") {
+                // Volume control column with +/- buttons
+                let cellIdentifier = NSUserInterfaceItemIdentifier("VolumeControlCell")
+                
+                let cell: NSTableCellView
+                if let recycledCell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView {
+                    cell = recycledCell
+                } else {
+                    cell = NSTableCellView()
+                    cell.identifier = cellIdentifier
+                    
+                    // Minus button
+                    let minusButton = NSButton()
+                    minusButton.title = "−"
+                    minusButton.bezelStyle = .circular
+                    minusButton.font = NSFont.systemFont(ofSize: 14)
+                    minusButton.translatesAutoresizingMaskIntoConstraints = false
+                    minusButton.action = #selector(volumeDecreaseClicked(_:))
+                    minusButton.target = self
+                    
+                    // Volume label
+                    let volumeLabel = NSTextField()
+                    volumeLabel.isBordered = true
+                    volumeLabel.backgroundColor = .controlBackgroundColor
+                    volumeLabel.isEditable = false
+                    volumeLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+                    volumeLabel.translatesAutoresizingMaskIntoConstraints = false
+                    volumeLabel.alignment = .center
+                    volumeLabel.bezelStyle = .roundedBezel
+                    
+                    // Plus button
+                    let plusButton = NSButton()
+                    plusButton.title = "+"
+                    plusButton.bezelStyle = .circular
+                    plusButton.font = NSFont.systemFont(ofSize: 14)
+                    plusButton.translatesAutoresizingMaskIntoConstraints = false
+                    plusButton.action = #selector(volumeIncreaseClicked(_:))
+                    plusButton.target = self
+                    
+                    cell.addSubview(minusButton)
+                    cell.addSubview(volumeLabel)
+                    cell.addSubview(plusButton)
+                    
+                    NSLayoutConstraint.activate([
+                        // Minus button
+                        minusButton.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 5),
+                        minusButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                        minusButton.widthAnchor.constraint(equalToConstant: 24),
+                        minusButton.heightAnchor.constraint(equalToConstant: 20),
+                        
+                        // Volume label
+                        volumeLabel.leadingAnchor.constraint(equalTo: minusButton.trailingAnchor, constant: 5),
+                        volumeLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                        volumeLabel.widthAnchor.constraint(equalToConstant: 50),
+                        volumeLabel.heightAnchor.constraint(equalToConstant: 20),
+                        
+                        // Plus button
+                        plusButton.leadingAnchor.constraint(equalTo: volumeLabel.trailingAnchor, constant: 5),
+                        plusButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                        plusButton.widthAnchor.constraint(equalToConstant: 24),
+                        plusButton.heightAnchor.constraint(equalToConstant: 20),
+                        plusButton.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor, constant: -5)
+                    ])
+                }
+                
+                if let devices = appDelegate?.targetDevices, row < devices.count {
+                    let deviceName = devices[row]
+                    let volume = appDelegate?.getVolumeForDevice(deviceName) ?? 0.5
+                    
+                    // Find buttons and label in the cell
+                    if let minusButton = cell.subviews.first(where: { ($0 as? NSButton)?.title == "−" }) as? NSButton,
+                       let plusButton = cell.subviews.first(where: { ($0 as? NSButton)?.title == "+" }) as? NSButton,
+                       let volumeLabel = cell.subviews.first(where: { $0 is NSTextField }) as? NSTextField {
+                        
+                        // Store row index for identification
+                        minusButton.tag = row
+                        plusButton.tag = row
+                        volumeLabel.tag = row
+                        
+                                                 // Update display
+                         volumeLabel.stringValue = "\(Int(volume * 100))%"
+                    }
+                }
+                
+                return cell
             }
-            
-            if let devices = appDelegate?.targetDevices, row < devices.count {
-                let deviceName = devices[row]
-                let isConnected = trackedDeviceStates[deviceName] ?? false
-                
-                // Show live status with green/red icons
-                let statusIcon = isConnected ? "🟢" : "🔴"
-                let statusText = isConnected ? "Connected" : "Disconnected"
-                
-                cell.textField?.stringValue = "\(statusIcon) \(deviceName) - \(statusText)"
-                cell.textField?.textColor = isConnected ? .systemGreen : .systemOrange
-            }
-            
-            return cell
             
         } else if tableView == activityLogTableView {
             // Activity log table view
