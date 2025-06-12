@@ -48,7 +48,7 @@ make build
 
 3. Run the app:
 ```bash
-./VolumeManager
+./VolumeManagerApp
 ```
 
 ### Option 3: Download release
@@ -72,14 +72,10 @@ To quit the app, click the menu bar icon and select "Quit".
 
 1. Open System Settings → Users & Groups → Login Items
 2. Click the + button
-3. Navigate to and select the VolumeManager app
+3. Navigate to and select the VolumeManagerApp
 4. Click Add
 
 ## Building
-
-### Using Xcode
-
-See [XCODE_SETUP.md](XCODE_SETUP.md) for detailed instructions on setting up and running the project in Xcode.
 
 ### Using Command Line
 
@@ -87,19 +83,22 @@ Requirements:
 - macOS 10.15 or later
 - Xcode Command Line Tools
 
-Build command:
+Build commands:
 ```bash
-swiftc -o VolumeManager VolumeManager/AppDelegate.swift -framework Cocoa -framework CoreAudio -framework AVFoundation
+make build          # Build the executable
+make run           # Build and run the app
+make app           # Create .app bundle
+make install       # Install to /Applications (requires sudo)
+make clean         # Clean build artifacts
 ```
 
-Or use the included Makefile:
-```bash
-make build
-```
+### Using Xcode
+
+See [XCODE_SETUP.md](XCODE_SETUP.md) for detailed instructions on setting up and running the project in Xcode.
 
 ## Customization
 
-To add more devices to monitor, edit the `targetDevices` array in `VolumeManager/AppDelegate.swift`:
+To add more devices to monitor, use the Preferences window in the app, or edit the `targetDevices` array in `VolumeManager/AppDelegate.swift`:
 
 ```swift
 var targetDevices = ["AirPods", "Zone Vibe", "Your Device Name"]
@@ -110,6 +109,24 @@ To change volume levels, modify these lines:
 setSystemVolume(0.5) // 50% when connected
 setSystemVolume(0.0) // 0% when disconnected
 ```
+
+## Architecture
+
+The app uses a clean AppKit architecture:
+
+- **AppDelegate**: Core app logic, audio monitoring, volume control
+- **PreferencesWindowController**: Window management
+- **PreferencesViewController**: Preferences UI and device management
+
+## Recent Changes
+
+The codebase has been recently refactored to:
+- Remove duplicate code and mixed architectures
+- Use modern notification APIs
+- Improve separation of concerns
+- Fix macOS compatibility issues
+
+See [REFACTOR_SUMMARY.md](REFACTOR_SUMMARY.md) for detailed changes.
 
 ## License
 

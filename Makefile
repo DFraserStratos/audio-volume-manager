@@ -3,8 +3,8 @@
 # Compiler and flags
 SWIFT = swiftc
 FRAMEWORKS = -framework Cocoa -framework CoreAudio -framework AVFoundation
-OUTPUT = VolumeManager
-SOURCE = VolumeManager.swift
+OUTPUT = VolumeManagerApp
+SOURCES = VolumeManager/main.swift VolumeManager/AppDelegate.swift VolumeManager/PreferencesViewController.swift VolumeManager/PreferencesWindowController.swift
 
 # Default target
 all: build
@@ -12,7 +12,7 @@ all: build
 # Build the application
 build:
 	@echo "Building Volume Manager..."
-	$(SWIFT) -o $(OUTPUT) $(SOURCE) $(FRAMEWORKS)
+	$(SWIFT) -o $(OUTPUT) $(SOURCES) $(FRAMEWORKS)
 	@echo "Build complete! Run with ./$(OUTPUT)"
 
 # Clean build artifacts

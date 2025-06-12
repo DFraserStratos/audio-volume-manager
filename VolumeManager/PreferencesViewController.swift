@@ -23,8 +23,8 @@ class PreferencesViewController: NSViewController {
         // Update UI
         updateStatus()
         
-        // Set up timer to update status
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        // Set up timer to update status every 2 seconds (less frequent than before)
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
             self.updateStatus()
         }
     }
