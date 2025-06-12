@@ -7,19 +7,17 @@ class PreferencesViewController: NSViewController {
     var statusLabel: NSTextField!
     var availableDevicesTableView: NSTableView!
     var trackedDevicesTableView: NSTableView!
-    var addButton: NSButton!
-    var removeButton: NSButton!
     var activityLogTableView: NSTableView!
     
     // Data sources
     var availableDevices: [String] = []
     var trackedDeviceStates: [String: Bool] = [:]
     
+
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         appDelegate = NSApp.delegate as? AppDelegate
-        
-        print("🔧 PreferencesViewController viewDidLoad() called")
         
         // Create the UI programmatically
         setupUI()
@@ -72,33 +70,26 @@ class PreferencesViewController: NSViewController {
         availableScrollView.borderType = .bezelBorder
         containerView.addSubview(availableScrollView)
         
-        // Action buttons
-        addButton = NSButton(frame: NSRect(x: 385, y: 480, width: 80, height: 32))
-        addButton.title = "Add →"
-        addButton.bezelStyle = .rounded
-        addButton.target = self
-        addButton.action = #selector(addSelectedDevice)
-        containerView.addSubview(addButton)
-        
-        removeButton = NSButton(frame: NSRect(x: 385, y: 440, width: 80, height: 32))
-        removeButton.title = "← Remove"
-        removeButton.bezelStyle = .rounded
-        removeButton.target = self
-        removeButton.action = #selector(removeSelectedDevice)
-        containerView.addSubview(removeButton)
+        // Helper text for available devices
+        let availableHelpLabel = NSTextField(labelWithString: "Double-click to add device to tracking →")
+        availableHelpLabel.font = NSFont.systemFont(ofSize: 11)
+        availableHelpLabel.frame = NSRect(x: 20, y: 365, width: 350, height: 20)
+        availableHelpLabel.textColor = .secondaryLabelColor
+        availableHelpLabel.alignment = .center
+        containerView.addSubview(availableHelpLabel)
         
         // Tracked devices section
         let trackedLabel = NSTextField(labelWithString: "Tracked Devices:")
         trackedLabel.font = NSFont.boldSystemFont(ofSize: 13)
-        trackedLabel.frame = NSRect(x: 480, y: 550, width: 250, height: 20)
+        trackedLabel.frame = NSRect(x: 430, y: 550, width: 250, height: 20)
         containerView.addSubview(trackedLabel)
         
         // Tracked devices table (WITH status icons)
-        let trackedScrollView = NSScrollView(frame: NSRect(x: 480, y: 390, width: 300, height: 150))
+        let trackedScrollView = NSScrollView(frame: NSRect(x: 430, y: 390, width: 350, height: 150))
         trackedDevicesTableView = NSTableView()
         let trackedColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("TrackedDevice"))
         trackedColumn.title = "Device Name"
-        trackedColumn.width = 280
+        trackedColumn.width = 330
         trackedDevicesTableView.addTableColumn(trackedColumn)
         trackedDevicesTableView.delegate = self
         trackedDevicesTableView.dataSource = self
@@ -108,6 +99,14 @@ class PreferencesViewController: NSViewController {
         trackedScrollView.hasVerticalScroller = true
         trackedScrollView.borderType = .bezelBorder
         containerView.addSubview(trackedScrollView)
+        
+        // Helper text for tracked devices
+        let trackedHelpLabel = NSTextField(labelWithString: "← Double-click to remove device from tracking")
+        trackedHelpLabel.font = NSFont.systemFont(ofSize: 11)
+        trackedHelpLabel.frame = NSRect(x: 430, y: 365, width: 350, height: 20)
+        trackedHelpLabel.textColor = .secondaryLabelColor
+        trackedHelpLabel.alignment = .center
+        containerView.addSubview(trackedHelpLabel)
         
         // Status section
         statusLabel = NSTextField(labelWithString: "Status: Loading...")
@@ -139,7 +138,7 @@ class PreferencesViewController: NSViewController {
         containerView.addSubview(activityScrollView)
         
         // Instructions
-        let instructionsLabel = NSTextField(labelWithString: "How it works: When tracked devices disconnect, volume is muted. When they reconnect, volume is set to 50%.\nTip: Double-click devices to move them between lists, or use the buttons.")
+        let instructionsLabel = NSTextField(labelWithString: "How it works: When tracked devices disconnect, volume is muted. When they reconnect, volume is set to 50%.\nTip: Double-click devices to move them between lists.")
         instructionsLabel.font = NSFont.systemFont(ofSize: 11)
         instructionsLabel.frame = NSRect(x: 20, y: 10, width: 760, height: 35)
         instructionsLabel.isEditable = false
@@ -190,7 +189,8 @@ class PreferencesViewController: NSViewController {
     @objc func addSelectedDevice() {
         guard let appDelegate = appDelegate else { return }
         
-        let selectedRow = availableDevicesTableView.selectedRow
+        let selectedRow = availableDevicesTableView?.selectedRow ?? -1
+        
         if selectedRow >= 0 && selectedRow < availableDevices.count {
             let selectedDevice = availableDevices[selectedRow]
             
@@ -198,6 +198,9 @@ class PreferencesViewController: NSViewController {
             if !appDelegate.targetDevices.contains(selectedDevice) {
                 appDelegate.targetDevices.append(selectedDevice)
                 appDelegate.savePreferences()
+                
+                // Refresh both lists
+                refreshAvailableDevices()
                 updateTrackedDeviceStates()
                 updateStatus()
             }
@@ -207,12 +210,16 @@ class PreferencesViewController: NSViewController {
     @objc func removeSelectedDevice() {
         guard let appDelegate = appDelegate else { return }
         
-        let selectedRow = trackedDevicesTableView.selectedRow
+        let selectedRow = trackedDevicesTableView?.selectedRow ?? -1
+        
         if selectedRow >= 0 && selectedRow < appDelegate.targetDevices.count {
             let deviceToRemove = appDelegate.targetDevices[selectedRow]
             appDelegate.targetDevices.remove(at: selectedRow)
             trackedDeviceStates.removeValue(forKey: deviceToRemove)
             appDelegate.savePreferences()
+            
+            // Refresh both lists
+            refreshAvailableDevices()
             updateTrackedDeviceStates()
             updateStatus()
         }
@@ -246,21 +253,8 @@ class PreferencesViewController: NSViewController {
 
     
     func refreshActivityLog() {
-        print("🔄 refreshActivityLog() called")
-        print("📊 Activity log count: \(appDelegate?.activityLog.count ?? 0)")
-        if let activities = appDelegate?.activityLog {
-            for (index, activity) in activities.enumerated() {
-                print("📝 Activity \(index): \(activity.deviceName) - \(activity.event) at \(activity.timestamp)")
-            }
-        }
-        
         DispatchQueue.main.async {
-            if let tableView = self.activityLogTableView {
-                print("✅ Reloading activity log table view")
-                tableView.reloadData()
-            } else {
-                print("❌ Activity log table view is nil, cannot reload")
-            }
+            self.activityLogTableView?.reloadData()
         }
     }
 }
@@ -414,14 +408,5 @@ extension PreferencesViewController: NSTableViewDelegate {
         return nil
     }
     
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        // Enable/disable buttons based on selections
-        if let tableView = notification.object as? NSTableView {
-            if tableView == availableDevicesTableView {
-                addButton?.isEnabled = tableView.selectedRow >= 0
-            } else if tableView == trackedDevicesTableView {
-                removeButton?.isEnabled = tableView.selectedRow >= 0
-            }
-        }
-    }
+
 }
