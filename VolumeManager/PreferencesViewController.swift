@@ -26,11 +26,12 @@ class PreferencesViewController: NSViewController {
         updateTrackedDeviceStates()
         refreshActivityLog()
         
-        // Set up timer to update status every 1 second for live updates
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            self.refreshAvailableDevices()
-            self.updateTrackedDeviceStates()
-            self.refreshActivityLog()
+        // Set up timer to update status every 5 seconds for live updates
+        // Use longer interval to avoid interfering with main app logic
+        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.refreshAvailableDevices()
+            self?.updateTrackedDeviceStates()
+            self?.refreshActivityLog()
         }
     }
     
@@ -454,7 +455,8 @@ extension PreferencesViewController: NSTableViewDelegate {
                 
                 if let devices = appDelegate?.targetDevices, row < devices.count {
                     let deviceName = devices[row]
-                    let volume = appDelegate?.getVolumeForDevice(deviceName) ?? 0.5
+                    // Get volume directly from deviceVolumeSettings to avoid excessive function calls
+                    let volume = appDelegate?.deviceVolumeSettings[deviceName] ?? 0.5
                     
                     // Find buttons and label in the cell
                     if let minusButton = cell.subviews.first(where: { ($0 as? NSButton)?.title == "−" }) as? NSButton,
@@ -466,8 +468,8 @@ extension PreferencesViewController: NSTableViewDelegate {
                         plusButton.tag = row
                         volumeLabel.tag = row
                         
-                                                 // Update display
-                         volumeLabel.stringValue = "\(Int(volume * 100))%"
+                        // Update display
+                        volumeLabel.stringValue = "\(Int(volume * 100))%"
                     }
                 }
                 
